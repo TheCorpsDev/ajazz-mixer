@@ -118,6 +118,12 @@
       $("step").value = settings.step || 2;
       $("step-value").textContent = $("step").value;
 
+      // Salva mentre scrivi (con un piccolo ritardo), non solo quando esci dal campo.
+      let typing = null;
+      $("apps").addEventListener("input", () => {
+        clearTimeout(typing);
+        typing = setTimeout(save, 400);
+      });
       $("apps").addEventListener("change", save);
       $("step").addEventListener("input", save);
       $("refresh").addEventListener("click", requestApps);

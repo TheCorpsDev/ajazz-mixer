@@ -125,38 +125,51 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                     (string?)payload?["controller"] ?? "Keypad",
                     payload?["settings"]?.DeepClone() as JsonObject ?? new JsonObject());
                 _instances[context] = instance;
+                Log($"{evt} {context}: {Describe(instance)}");
                 await UpdateTitleAsync(context, instance, Read(instance));
                 break;
             }
             case "willDisappear":
                 _instances.Remove(context);
+                Log($"{evt} {context}");
                 break;
             case "didReceiveSettings":
                 if (_instances.TryGetValue(context, out var changed))
                 {
                     changed.Settings = payload?["settings"]?.DeepClone() as JsonObject ?? new JsonObject();
+                    Log($"{evt} {context}: {Describe(changed)}");
                     await UpdateTitleAsync(context, changed, Read(changed));
                 }
                 break;
             case "dialRotate":
             {
-                if (!_instances.TryGetValue(context, out var instance)) break;
+                if (!_instances.TryGetValue(context, out var instance))
+                {
+                    Log($"{evt} {context}: istanza sconosciuta, ignorato");
+                    break;
+                }
                 var ticks = (int?)payload?["ticks"] ?? 0;
                 if (ticks == 0) break;
                 var delta = ticks * Format.Step(instance.Settings) / 100f;
                 var state = instance.Action == MasterAction
                     ? AudioMixer.ChangeMaster(delta)
                     : AudioMixer.ChangeApp(Apps(instance), delta)?.State;
+                Log($"{evt} {context} ticks={ticks}: {Describe(instance)} -> {Outcome(state)}");
                 await UpdateTitleAsync(context, instance, state);
                 break;
             }
             case "dialDown":
             case "keyDown":
             {
-                if (!_instances.TryGetValue(context, out var instance)) break;
+                if (!_instances.TryGetValue(context, out var instance))
+                {
+                    Log($"{evt} {context}: istanza sconosciuta, ignorato");
+                    break;
+                }
                 var state = instance.Action == MasterAction
                     ? AudioMixer.ToggleMasterMute()
                     : AudioMixer.ToggleAppMute(Apps(instance))?.State;
+                Log($"{evt} {context}: {Describe(instance)} -> {Outcome(state)}");
                 await UpdateTitleAsync(context, instance, state);
                 break;
             }
@@ -177,6 +190,18 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
     }
 
     private static List<string> Apps(Instance instance) => Format.ParseApps((string?)instance.Settings["apps"]);
+
+    private static string Describe(Instance instance)
+    {
+        var kind = instance.Action == MasterAction ? "master" : "app";
+        if (instance.Action == MasterAction) return $"{kind} ({instance.Controller}, passo {Format.Step(instance.Settings)}%)";
+        var apps = Apps(instance);
+        var list = apps.Count == 0 ? "nessuna app impostata" : string.Join(", ", apps);
+        return $"{kind} [{list}] ({instance.Controller}, passo {Format.Step(instance.Settings)}%)";
+    }
+
+    private static string Outcome(VolumeState? state) =>
+        state is null ? "nessuna sessione audio trovata" : Format.Title(state.Value);
 
     private static VolumeState? Read(Instance instance) =>
         instance.Action == MasterAction ? AudioMixer.GetMaster() : AudioMixer.GetApp(Apps(instance))?.State;
