@@ -69,6 +69,7 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
 
             var text = Encoding.UTF8.GetString(message.GetBuffer(), 0, (int)message.Length);
             message.SetLength(0);
+            if (!text.Contains("\"dialRotate\"")) Log($"<- {Truncate(text)}");
             if (JsonNode.Parse(text) is JsonObject json)
                 _work.Writer.TryWrite(() => HandleAsync(json));
         }
@@ -116,6 +117,11 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
         var action = (string?)json["action"];
         var payload = json["payload"] as JsonObject;
         if (evt is null || context is null) return;
+
+        // Le impostazioni arrivano anche dentro gli eventi di manopole e tasti: le riallineo
+        // sempre, perché non tutti i software inviano didReceiveSettings dopo una modifica.
+        if (evt != "willAppear" && payload?["settings"] is JsonObject current && _instances.TryGetValue(context, out var known))
+            known.Settings = (JsonObject)current.DeepClone();
 
         switch (evt)
         {
@@ -217,12 +223,18 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                     });
                 }
                 break;
+            case "dialUp":
+            case "keyUp":
+            case "titleParametersDidChange":
+                break;
             default:
                 // Utile per capire cosa invia il software Ajazz (gli eventi variano tra versioni).
                 Log($"evento non gestito: {evt} {context}");
                 break;
         }
     }
+
+    private static string Truncate(string text) => text.Length <= 400 ? text : text[..400] + "…";
 
     private static List<string> Apps(Instance instance) => Format.ParseApps((string?)instance.Settings["apps"]);
 
@@ -296,5 +308,26 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
         }
     }
 
-    private static void Log(string message) => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+    // Il software Ajazz non salva l'output dei plugin: scrivo anche su mixer.log nella
+    // cartella del plugin (accanto a manifest.json), ricominciando oltre 1 MB.
+    private static readonly string LogPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "mixer.log"));
+    private static readonly object LogGate = new();
+
+    public static void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        Console.WriteLine(line);
+        lock (LogGate)
+        {
+            try
+            {
+                if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 1_000_000) File.Delete(LogPath);
+                File.AppendAllText(LogPath, line + Environment.NewLine);
+            }
+            catch
+            {
+                // il log non deve mai bloccare il plugin
+            }
+        }
+    }
 }
