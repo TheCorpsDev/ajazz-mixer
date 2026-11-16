@@ -16,6 +16,21 @@ if (args.Contains("--list"))
     return 0;
 }
 
+// Modalità diagnostica: mostra il popup di un'app senza cambiarne il volume.
+// Es. OpenDeckMixer.exe --popup Spotify [--hold 5000]
+var popupIndex = Array.IndexOf(args, "--popup");
+if (popupIndex >= 0)
+{
+    var name = popupIndex + 1 < args.Length ? args[popupIndex + 1] : "Spotify";
+    var holdIndex = Array.IndexOf(args, "--hold");
+    var hold = holdIndex >= 0 && holdIndex + 1 < args.Length && int.TryParse(args[holdIndex + 1], out var ms) ? ms : 1500;
+    Osd.VisibleMs = hold;
+    var app = AudioMixer.GetApp([name]);
+    Osd.Show(Format.NormalizeProcess(name), app?.State, app?.ProcessId ?? 0);
+    Thread.Sleep(hold + 800);
+    return 0;
+}
+
 // Avvio da OpenDeck: -port <n> -pluginUUID <id> -registerEvent <evento> -info <json>
 string? Arg(string name)
 {

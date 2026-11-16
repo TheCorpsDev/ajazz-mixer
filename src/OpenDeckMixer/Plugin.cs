@@ -159,9 +159,17 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                     break;
                 }
                 var delta = ticks * step / 100f;
-                var state = instance.Action == MasterAction
-                    ? AudioMixer.ChangeMaster(delta)
-                    : AudioMixer.ChangeApp(Apps(instance), delta)?.State;
+                VolumeState? state;
+                if (instance.Action == MasterAction)
+                {
+                    state = AudioMixer.ChangeMaster(delta);
+                }
+                else
+                {
+                    var result = AudioMixer.ChangeApp(Apps(instance), delta);
+                    state = result?.State;
+                    ShowAppPopup(instance, result);
+                }
                 Log($"{evt} {context} ticks={ticks}: {Describe(instance)} -> {Outcome(state)}");
                 await UpdateTitleAsync(context, instance, state);
                 break;
@@ -180,9 +188,17 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                     Log($"{evt} {context}: {Describe(instance)} -> tasto muto");
                     break;
                 }
-                var state = instance.Action == MasterAction
-                    ? AudioMixer.ToggleMasterMute()
-                    : AudioMixer.ToggleAppMute(Apps(instance))?.State;
+                VolumeState? state;
+                if (instance.Action == MasterAction)
+                {
+                    state = AudioMixer.ToggleMasterMute();
+                }
+                else
+                {
+                    var result = AudioMixer.ToggleAppMute(Apps(instance));
+                    state = result?.State;
+                    ShowAppPopup(instance, result);
+                }
                 Log($"{evt} {context}: {Describe(instance)} -> {Outcome(state)}");
                 await UpdateTitleAsync(context, instance, state);
                 break;
@@ -210,6 +226,18 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
     /// che il popup non sia disattivato nelle impostazioni. Il popup di Windows
     /// mostra solo il volume master, quindi per le app non avrebbe senso.
     /// </summary>
+    /// <summary>
+    /// Popup nostro per le app (quello di Windows mostra solo il master).
+    /// Se nessuna app dell'elenco sta usando l'audio, lo dice nel popup.
+    /// </summary>
+    private static void ShowAppPopup(Instance instance, AppVolume? result)
+    {
+        if (!Format.Popup(instance.Settings)) return;
+        var apps = Apps(instance);
+        if (apps.Count == 0) return;
+        Osd.Show(Format.NormalizeProcess(result?.Name ?? apps[0]), result?.State, result?.ProcessId ?? 0);
+    }
+
     private static bool UsesMediaKeys(Instance instance) =>
         instance.Action == MasterAction && Format.Popup(instance.Settings);
 

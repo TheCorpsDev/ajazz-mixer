@@ -5,7 +5,8 @@ namespace OpenDeckMixer;
 
 public readonly record struct VolumeState(float Volume, bool Muted);
 
-public readonly record struct AppVolume(string Name, VolumeState State);
+/// <param name="ProcessId">PID di uno dei processi dell'app, per ricavarne l'icona (0 se sconosciuto).</param>
+public readonly record struct AppVolume(string Name, VolumeState State, uint ProcessId = 0);
 
 /// <summary>
 /// Accesso al mixer di Windows (Core Audio): volume master del dispositivo
@@ -51,10 +52,10 @@ public static class AudioMixer
 
     /// <summary>Stato della prima app dell'elenco che ha una sessione audio.</summary>
     public static AppVolume? GetApp(IReadOnlyList<string> apps) =>
-        WithFirstApp(apps, (name, sessions) => new AppVolume(name, StateOf(sessions)));
+        WithFirstApp(apps, (name, pid, sessions) => new AppVolume(name, StateOf(sessions), pid));
 
     public static AppVolume? ChangeApp(IReadOnlyList<string> apps, float delta) =>
-        WithFirstApp(apps, (name, sessions) =>
+        WithFirstApp(apps, (name, pid, sessions) =>
         {
             var current = StateOf(sessions);
             var volume = Clamp(current.Volume + delta);
@@ -64,16 +65,16 @@ public static class AudioMixer
                 s.SimpleAudioVolume.Volume = volume;
                 if (unmute) s.SimpleAudioVolume.Mute = false;
             }
-            return new AppVolume(name, new VolumeState(volume, current.Muted && !unmute));
+            return new AppVolume(name, new VolumeState(volume, current.Muted && !unmute), pid);
         });
 
     public static AppVolume? ToggleAppMute(IReadOnlyList<string> apps) =>
-        WithFirstApp(apps, (name, sessions) =>
+        WithFirstApp(apps, (name, pid, sessions) =>
         {
             var current = StateOf(sessions);
             var mute = !current.Muted;
             foreach (var s in sessions) s.SimpleAudioVolume.Mute = mute;
-            return new AppVolume(name, current with { Muted = mute });
+            return new AppVolume(name, current with { Muted = mute }, pid);
         });
 
     /// <summary>Tutte le app che hanno almeno una sessione audio, senza duplicati.</summary>
@@ -93,7 +94,7 @@ public static class AudioMixer
     private static VolumeState StateOf(List<AudioSessionControl> sessions) =>
         new(sessions[0].SimpleAudioVolume.Volume, sessions.All(s => s.SimpleAudioVolume.Mute));
 
-    private static T? WithFirstApp<T>(IReadOnlyList<string> apps, Func<string, List<AudioSessionControl>, T> action)
+    private static T? WithFirstApp<T>(IReadOnlyList<string> apps, Func<string, uint, List<AudioSessionControl>, T> action)
         where T : struct
     {
         T? result = null;
@@ -106,7 +107,7 @@ public static class AudioMixer
                     .Select(x => x.Session)
                     .ToList();
                 if (sessions.Count == 0) continue;
-                result = action(app.Trim(), sessions);
+                result = action(app.Trim(), sessions[0].GetProcessID, sessions);
                 return;
             }
         });

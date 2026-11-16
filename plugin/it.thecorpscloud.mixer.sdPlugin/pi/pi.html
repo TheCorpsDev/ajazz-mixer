@@ -54,11 +54,11 @@
     </div>
   </div>
 
-  <div class="row" id="popup-row" hidden>
+  <div class="row" id="popup-row">
     <label for="popup">Popup</label>
     <div>
-      <label class="check"><input type="checkbox" id="popup" /> Mostra il popup del volume di Windows</label>
-      <div class="hint">Con il popup il passo va a multipli del 2%, come i tasti volume della tastiera.</div>
+      <label class="check"><input type="checkbox" id="popup" /> <span id="popup-text"></span></label>
+      <div class="hint" id="popup-hint"></div>
     </div>
   </div>
 
@@ -86,7 +86,7 @@
     function save() {
       settings.apps = $("apps").value;
       settings.step = parseInt($("step").value, 10);
-      if (!$("popup-row").hidden) settings.popup = $("popup").checked;
+      settings.popup = $("popup").checked;
       $("step-value").textContent = settings.step;
       send("setSettings", settings);
     }
@@ -125,7 +125,10 @@
 
       const isApp = actionInfo.action === "it.thecorpscloud.mixer.app";
       $("apps-row").hidden = !isApp;
-      $("popup-row").hidden = isApp;
+      $("popup-text").textContent = isApp ? "Mostra il popup del volume" : "Mostra il popup del volume di Windows";
+      $("popup-hint").textContent = isApp
+        ? "Compare in basso al centro con il nome dell'app e il volume."
+        : "Con il popup il passo va a multipli del 2%, come i tasti volume della tastiera.";
       $("popup").checked = settings.popup !== false;
       $("popup").addEventListener("change", save);
       $("apps").value = settings.apps || "";
