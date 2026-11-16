@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root {
+      --bg: #2d2d2d;
+      --field: #3d3d3d;
+      --text: #d8d8d8;
+      --muted: #9a9a9a;
+      --accent: #4fb3ff;
+    }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 9pt system-ui, "Segoe UI", sans-serif;
+    }
+    body { padding: 10px 12px; }
+    .row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; align-items: start; margin-bottom: 12px; }
+    label { color: var(--muted); padding-top: 5px; }
+    input[type="text"] {
+      width: 100%; box-sizing: border-box; padding: 5px 6px;
+      background: var(--field); color: var(--text); border: 1px solid transparent; border-radius: 3px; font: inherit;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .hint { color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .chip {
+      background: var(--field); color: var(--text); border: 0; border-radius: 10px;
+      padding: 3px 9px; font: inherit; cursor: pointer;
+    }
+    .chip:hover { background: var(--accent); color: #0b1620; }
+    .link { background: none; border: 0; color: var(--accent); padding: 0; font: inherit; cursor: pointer; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="row" id="apps-row" hidden>
+    <label for="apps">App</label>
+    <div>
+      <input type="text" id="apps" placeholder="es. Discord" spellcheck="false" />
+      <div class="hint">
+        Nome del processo. Separando più nomi con la virgola
+        (es. <code>Spotify, chrome</code>) controlla il primo che sta usando l'audio.
+      </div>
+      <div class="hint">
+        In uso adesso · <button class="link" id="refresh" type="button">aggiorna</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <label for="step">Passo</label>
+    <div>
+      <input type="range" id="step" min="1" max="10" />
+      <div class="hint"><span id="step-value"></span>% per ogni scatto della manopola</div>
+    </div>
+  </div>
+
+  <script>
+    let socket = null;
+    let actionInfo = null;
+    let settings = {};
+
+    const $ = (id) => document.getElementById(id);
+
+    function send(event, payload) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ event, context: actionInfo.context, action: actionInfo.action, payload }));
+      }
+    }
+
+    function save() {
+      settings.apps = $("apps").value;
+      settings.step = parseInt($("step").value, 10);
+      $("step-value").textContent = settings.step;
+      send("setSettings", settings);
+    }
+
+    function requestApps() {
+      send("sendToPlugin", { request: "apps" });
+    }
+
+    function renderChips(apps) {
+      const chips = $("chips");
+      chips.replaceChildren();
+      if (apps.length === 0) {
+        chips.textContent = "Nessuna app sta usando l'audio.";
+        return;
+      }
+      for (const name of apps) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.textContent = name;
+        chip.title = "Aggiungi " + name;
+        chip.onclick = () => {
+          const current = $("apps").value.split(",").map((s) => s.trim()).filter(Boolean);
+          if (!current.some((s) => s.toLowerCase() === name.toLowerCase())) current.push(name);
+          $("apps").value = current.join(", ");
+          save();
+        };
+        chips.appendChild(chip);
+      }
+    }
+
+    // Chiamata da OpenDeck all'apertura del pannello.
+    function connectElgatoStreamDeckSocket(port, uuid, registerEvent, info, inActionInfo) {
+      actionInfo = JSON.parse(inActionInfo);
+      settings = actionInfo.payload.settings || {};
+
+      const isApp = actionInfo.action === "it.thecorpscloud.mixer.app";
+      $("apps-row").hidden = !isApp;
+      $("apps").value = settings.apps || "";
+      $("step").value = settings.step || 2;
+      $("step-value").textContent = $("step").value;
+
+      $("apps").addEventListener("change", save);
+      $("step").addEventListener("input", save);
+      $("refresh").addEventListener("click", requestApps);
+
+      socket = new WebSocket("ws://127.0.0.1:" + port);
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ event: registerEvent, uuid }));
+        if (isApp) requestApps();
+      };
+      socket.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+        if (data.event === "sendToPropertyInspector" && data.payload && Array.isArray(data.payload.apps)) {
+          renderChips(data.payload.apps);
+        }
+      };
+    }
+  </script>
+</body>
+</html>
