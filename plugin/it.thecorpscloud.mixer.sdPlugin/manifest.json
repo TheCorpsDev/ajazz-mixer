@@ -2,7 +2,7 @@
   "Name": "Mixer",
   "Description": "Volume master e volume per singola app di Windows, da manopole o tasti",
   "Author": "thecorps",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "Icon": "icons/plugin",
   "Category": "Mixer",
   "CategoryIcon": "icons/plugin",

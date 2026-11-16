@@ -42,5 +42,9 @@ public static class Format
         return Math.Clamp(step, 1, 20);
     }
 
+    /// <summary>Mostrare il popup del volume di Windows (solo master, default sì).</summary>
+    public static bool Popup(JsonObject settings) =>
+        settings["popup"] is JsonValue v && v.TryGetValue<bool>(out var b) ? b : true;
+
     public static string Title(VolumeState state) => state.Muted ? "Muto" : Percent(state.Volume);
 }

@@ -150,7 +150,15 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                 }
                 var ticks = (int?)payload?["ticks"] ?? 0;
                 if (ticks == 0) break;
-                var delta = ticks * Format.Step(instance.Settings) / 100f;
+                var step = Format.Step(instance.Settings);
+                if (UsesMediaKeys(instance))
+                {
+                    // Il volume cambia in modo asincrono: il titolo lo aggiorna il refresh periodico.
+                    MediaKeys.ChangeVolume(ticks * step);
+                    Log($"{evt} {context} ticks={ticks}: {Describe(instance)} -> tasti volume");
+                    break;
+                }
+                var delta = ticks * step / 100f;
                 var state = instance.Action == MasterAction
                     ? AudioMixer.ChangeMaster(delta)
                     : AudioMixer.ChangeApp(Apps(instance), delta)?.State;
@@ -164,6 +172,12 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                 if (!_instances.TryGetValue(context, out var instance))
                 {
                     Log($"{evt} {context}: istanza sconosciuta, ignorato");
+                    break;
+                }
+                if (UsesMediaKeys(instance))
+                {
+                    MediaKeys.ToggleMute();
+                    Log($"{evt} {context}: {Describe(instance)} -> tasto muto");
                     break;
                 }
                 var state = instance.Action == MasterAction
@@ -191,10 +205,19 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
 
     private static List<string> Apps(Instance instance) => Format.ParseApps((string?)instance.Settings["apps"]);
 
+    /// <summary>
+    /// Il master usa i tasti multimediali (che mostrano il popup di Windows) a meno
+    /// che il popup non sia disattivato nelle impostazioni. Il popup di Windows
+    /// mostra solo il volume master, quindi per le app non avrebbe senso.
+    /// </summary>
+    private static bool UsesMediaKeys(Instance instance) =>
+        instance.Action == MasterAction && Format.Popup(instance.Settings);
+
     private static string Describe(Instance instance)
     {
         var kind = instance.Action == MasterAction ? "master" : "app";
-        if (instance.Action == MasterAction) return $"{kind} ({instance.Controller}, passo {Format.Step(instance.Settings)}%)";
+        if (instance.Action == MasterAction)
+            return $"{kind} ({instance.Controller}, passo {Format.Step(instance.Settings)}%, popup {(Format.Popup(instance.Settings) ? "si" : "no")})";
         var apps = Apps(instance);
         var list = apps.Count == 0 ? "nessuna app impostata" : string.Join(", ", apps);
         return $"{kind} [{list}] ({instance.Controller}, passo {Format.Step(instance.Settings)}%)";

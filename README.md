@@ -18,6 +18,9 @@ Impostazioni (pannello di OpenDeck):
   (`Spotify, chrome`) controlla il primo che ha una sessione audio aperta. Il pannello mostra le
   app che stanno usando l'audio: clic per aggiungerle.
 - **Passo**: percentuale per ogni scatto della manopola (1–10, default 2).
+- **Popup** (solo master, attivo di default): il volume master viene cambiato simulando i tasti
+  volume della tastiera, così compare il popup del volume di Windows. In questa modalità il passo
+  va a multipli del 2%. Il popup di Windows mostra solo il master, quindi le app non lo hanno.
 
 L'app viene cercata su tutti i dispositivi di uscita attivi, non solo su quello predefinito.
 Se ha più sessioni (es. un browser) vengono regolate tutte insieme.
