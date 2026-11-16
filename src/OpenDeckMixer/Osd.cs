@@ -154,7 +154,12 @@ internal static class OsdRenderer
 {
     public const int IconSize = 36;
 
-    private static readonly string IconFont = PickIconFont();
+    private static readonly HashSet<string> Installed = InstalledFonts();
+
+    // Font di sistema di Windows 11 (Segoe UI Variable); su Windows 10 ripiega su Segoe UI.
+    private static readonly string IconFont = Pick("Segoe Fluent Icons", "Segoe MDL2 Assets");
+    private static readonly string TitleFont = Pick("Segoe UI Variable Text Semibold", "Segoe UI Semibold");
+    private static readonly string BodyFont = Pick("Segoe UI Variable Text", "Segoe UI");
 
     public static Bitmap Render(string name, VolumeState? state, Bitmap? icon, float scale)
     {
@@ -168,7 +173,7 @@ internal static class OsdRenderer
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        g.TextRenderingHint = TextRenderingHint.AntiAlias;
         g.Clear(Color.Transparent);
 
         // Sfondo arrotondato con bordo sottile
@@ -227,7 +232,7 @@ internal static class OsdRenderer
         var contentLeft = iconBox.Right + S(14);
 
         // Riga 1: nome dell'app (e stato se non sta usando l'audio)
-        using (var font = new Font("Segoe UI Semibold", 13f * scale, GraphicsUnit.Pixel))
+        using (var font = new Font(TitleFont, 14f * scale, GraphicsUnit.Pixel))
         using (var brush = new SolidBrush(theme.Text))
         {
             var label = state is null ? $"{name} · nessun audio" : name;
@@ -269,7 +274,7 @@ internal static class OsdRenderer
             g.FillEllipse(innerFill, cx - inner / 2f, barTop + barHeight / 2f - inner / 2f, inner, inner);
         }
 
-        using (var font = new Font("Segoe UI", 15f * scale, GraphicsUnit.Pixel))
+        using (var font = new Font(BodyFont, 15f * scale, GraphicsUnit.Pixel))
         using (var brush = new SolidBrush(theme.Text))
         {
             var text = state is null ? "—" : muted ? "Muto" : ((int)MathF.Round(volume * 100f)).ToString();
@@ -297,12 +302,14 @@ internal static class OsdRenderer
         return path;
     }
 
-    private static string PickIconFont()
+    private static HashSet<string> InstalledFonts()
     {
         using var fonts = new InstalledFontCollection();
-        var names = fonts.Families.Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return names.Contains("Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets";
+        return fonts.Families.Select(f => f.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
+
+    private static string Pick(params string[] names) =>
+        names.FirstOrDefault(Installed.Contains) ?? SystemFonts.MessageBoxFont?.FontFamily.Name ?? "Segoe UI";
 }
 
 /// <summary>Colori presi dal tema di Windows (chiaro/scuro e colore principale).</summary>
