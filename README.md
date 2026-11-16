@@ -30,7 +30,7 @@ Se ha più sessioni (es. un browser) vengono regolate tutte insieme.
 ## Installazione
 
 1. Installa OpenDeck e il plugin del dispositivo (per l'AKP03E: opendeck-akp03).
-2. Compila il pacchetto (vedi sotto) oppure prendi `it.thecorpscloud.mixer.plugin.zip`.
+2. Scarica `it.thecorpscloud.mixer.plugin.zip` dalle [Release](../../releases/latest) oppure compilalo (vedi sotto).
 3. In OpenDeck: **Plugins → Install from file** e scegli lo zip.
 4. Trascina "Volume master" o "Volume app" sulle manopole.
 
@@ -58,3 +58,7 @@ Diagnostica:
 - `src/OpenDeckMixer/MediaKeys.cs`: tasti volume simulati (popup di Windows per il master)
 - `src/OpenDeckMixer/Osd.cs`: popup del volume delle app, con icona presa dall'eseguibile
 - `plugin/it.thecorpscloud.mixer.sdPlugin/`: manifest, icone e pannello impostazioni
+
+## Licenza
+
+[MIT](LICENSE). Usa [NAudio](https://github.com/naudio/NAudio) (MIT).
