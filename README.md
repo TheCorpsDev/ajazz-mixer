@@ -1,9 +1,12 @@
-# OpenDeck Mixer
+# Ajazz Mixer
 
-Plugin per [OpenDeck](https://github.com/nekename/OpenDeck) che controlla il mixer audio di Windows
-da manopole e tasti. Pensato per l'Ajazz AKP03E (con il plugin
-[opendeck-akp03](https://github.com/4ndv/opendeck-akp03)), ma funziona con qualsiasi dispositivo
-supportato da OpenDeck.
+Plugin per il software **Stream Dock** di Ajazz (lo stesso di Mirabox) che controlla il mixer audio
+di Windows da manopole e tasti. Pensato per l'Ajazz AKP03E, funziona con i dispositivi gestiti
+dal software Stream Dock.
+
+È la versione per il software Ajazz di [opendeck-mixer](https://github.com/TheCorpsDev/opendeck-mixer),
+che fa la stessa cosa per [OpenDeck](https://github.com/nekename/OpenDeck). Usa uno solo dei due
+programmi alla volta: si contendono il dispositivo.
 
 ## Azioni
 
@@ -12,7 +15,7 @@ supportato da OpenDeck.
 | **Volume master** | gira: volume del dispositivo di uscita predefinito · premi: muto | premi: muto · il titolo mostra il volume |
 | **Volume app** | gira: volume di un'app · premi: muto dell'app | premi: muto dell'app · il titolo mostra il volume |
 
-Impostazioni (pannello di OpenDeck):
+Impostazioni (pannello dell'azione):
 
 - **App**: nome del processo (`Discord`, `Spotify`, `chrome`…). Con più nomi separati da virgola
   (`Spotify, chrome`) controlla il primo che ha una sessione audio aperta. Il pannello mostra le
@@ -29,10 +32,13 @@ Se ha più sessioni (es. un browser) vengono regolate tutte insieme.
 
 ## Installazione
 
-1. Installa OpenDeck e il plugin del dispositivo (per l'AKP03E: opendeck-akp03).
-2. Scarica `it.thecorpscloud.mixer.plugin.zip` dalle [Release](../../releases/latest) oppure compilalo (vedi sotto).
-3. In OpenDeck: **Plugins → Install from file** e scegli lo zip.
-4. Trascina "Volume master" o "Volume app" sulle manopole.
+1. Scarica `ajazz-mixer.zip` dalle [Release](../../releases/latest) ed estrailo.
+2. Tasto destro su `install.ps1` → **Esegui con PowerShell**. Copia il plugin in
+   `%APPDATA%\HotSpot\StreamDock\plugins`.
+3. Riavvia il software Stream Dock AJAZZ (chiudilo anche dall'icona vicino all'orologio).
+4. Trova la categoria **Mixer** tra le azioni e trascina "Volume master" o "Volume app" sulle manopole.
+
+In alternativa puoi copiare a mano la cartella `it.thecorpscloud.mixer.sdPlugin` in quel percorso.
 
 ## Build
 
@@ -42,14 +48,21 @@ Serve l'SDK .NET 10. Da Linux/WSL:
 ./build.sh
 ```
 
-Produce `dist/it.thecorpscloud.mixer.plugin.zip`: un `.exe` self-contained, quindi su Windows non
-serve installare .NET.
+Produce `dist/ajazz-mixer.zip`: un `.exe` self-contained (su Windows non serve installare .NET)
+più lo script di installazione.
 
 Diagnostica:
 
-- `OpenDeckMixer.exe --list` stampa il volume master e le app con una sessione audio, utile per
+- `AjazzMixer.exe --list` stampa il volume master e le app con una sessione audio, utile per
   sapere il nome esatto del processo.
-- `OpenDeckMixer.exe --popup Spotify [--hold 5000]` mostra il popup di un'app senza toccarne il volume.
+- `AjazzMixer.exe --popup Spotify [--hold 5000]` mostra il popup di un'app senza toccarne il volume.
+
+## Differenze rispetto alla versione OpenDeck
+
+- Le manopole sono dichiarate come `Knob` (il nome usato dall'SDK Stream Dock) invece di `Encoder`.
+- Il manifest usa `SDKVersion` 1, il campo `Software` e icone PNG.
+- Installazione con `install.ps1` invece di "Install from file".
+- Gli eventi che il plugin non gestisce finiscono nel log, per adattarsi alle versioni del software.
 
 ## Struttura
 
@@ -57,7 +70,8 @@ Diagnostica:
 - `src/OpenDeckMixer/AudioMixer.cs`: Core Audio di Windows tramite NAudio.Wasapi
 - `src/OpenDeckMixer/MediaKeys.cs`: tasti volume simulati (popup di Windows per il master)
 - `src/OpenDeckMixer/Osd.cs`: popup del volume delle app, con icona presa dall'eseguibile
-- `plugin/it.thecorpscloud.mixer.sdPlugin/`: manifest, icone e pannello impostazioni
+- `plugin/it.thecorpscloud.mixer.sdPlugin/`: manifest, icone PNG e pannello impostazioni
+- `assets/icons/`: sorgenti SVG delle icone
 
 ## Licenza
 

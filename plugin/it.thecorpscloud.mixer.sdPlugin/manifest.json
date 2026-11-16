@@ -6,37 +6,33 @@
   "Icon": "icons/plugin",
   "Category": "Mixer",
   "CategoryIcon": "icons/plugin",
-  "CodePathWin": "bin/OpenDeckMixer.exe",
+  "CodePath": "bin/AjazzMixer.exe",
+  "CodePathWin": "bin/AjazzMixer.exe",
+  "SDKVersion": 1,
   "OS": [{ "Platform": "windows", "MinimumVersion": "10" }],
-  "SDKVersion": 2,
+  "Software": { "MinimumVersion": "3.10.188.226" },
   "Actions": [
     {
       "Name": "Volume master",
       "UUID": "it.thecorpscloud.mixer.master",
       "Icon": "icons/master",
       "Tooltip": "Manopola: regola il volume di Windows. Pressione: muto",
-      "Controllers": ["Encoder", "Keypad"],
+      "Controllers": ["Knob", "Keypad"],
       "PropertyInspectorPath": "pi/pi.html",
       "SupportedInMultiActions": false,
-      "States": [{ "Image": "icons/master", "TitleAlignment": "bottom" }],
-      "Encoder": {
-        "Icon": "icons/master",
-        "TriggerDescription": { "Rotate": "Volume", "Push": "Muto" }
-      }
+      "UserTitleEnabled": false,
+      "States": [{ "Image": "icons/master", "TitleAlignment": "bottom" }]
     },
     {
       "Name": "Volume app",
       "UUID": "it.thecorpscloud.mixer.app",
       "Icon": "icons/app",
       "Tooltip": "Manopola: regola il volume di un'app (es. Discord). Pressione: muto",
-      "Controllers": ["Encoder", "Keypad"],
+      "Controllers": ["Knob", "Keypad"],
       "PropertyInspectorPath": "pi/pi.html",
       "SupportedInMultiActions": false,
-      "States": [{ "Image": "icons/app", "TitleAlignment": "bottom" }],
-      "Encoder": {
-        "Icon": "icons/app",
-        "TriggerDescription": { "Rotate": "Volume app", "Push": "Muto app" }
-      }
+      "UserTitleEnabled": false,
+      "States": [{ "Image": "icons/app", "TitleAlignment": "bottom" }]
     }
   ]
 }

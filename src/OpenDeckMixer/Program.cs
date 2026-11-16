@@ -17,7 +17,7 @@ if (args.Contains("--list"))
 }
 
 // Modalità diagnostica: mostra il popup di un'app senza cambiarne il volume.
-// Es. OpenDeckMixer.exe --popup Spotify [--hold 5000]
+// Es. AjazzMixer.exe --popup Spotify [--hold 5000]
 var popupIndex = Array.IndexOf(args, "--popup");
 if (popupIndex >= 0)
 {
@@ -43,8 +43,8 @@ var pluginUuid = Arg("-pluginUUID");
 var registerEvent = Arg("-registerEvent");
 if (port is null || pluginUuid is null || registerEvent is null)
 {
-    Console.Error.WriteLine("Uso: OpenDeckMixer -port <porta> -pluginUUID <uuid> -registerEvent <evento> -info <json>");
-    Console.Error.WriteLine("     OpenDeckMixer --list");
+    Console.Error.WriteLine("Uso: AjazzMixer -port <porta> -pluginUUID <uuid> -registerEvent <evento> -info <json>");
+    Console.Error.WriteLine("     AjazzMixer --list");
     return 1;
 }
 

@@ -21,7 +21,8 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
         public string Controller { get; } = controller;
         public JsonObject Settings { get; set; } = settings;
         public string? LastTitle { get; set; }
-        public bool IsKey => Controller != "Encoder";
+        // OpenDeck chiama le manopole "Encoder", il software Ajazz (Stream Dock) "Knob".
+        public bool IsKey => Controller is not ("Encoder" or "Knob");
     }
 
     private readonly ClientWebSocket _socket = new();
@@ -216,16 +217,15 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
                     });
                 }
                 break;
+            default:
+                // Utile per capire cosa invia il software Ajazz (gli eventi variano tra versioni).
+                Log($"evento non gestito: {evt} {context}");
+                break;
         }
     }
 
     private static List<string> Apps(Instance instance) => Format.ParseApps((string?)instance.Settings["apps"]);
 
-    /// <summary>
-    /// Il master usa i tasti multimediali (che mostrano il popup di Windows) a meno
-    /// che il popup non sia disattivato nelle impostazioni. Il popup di Windows
-    /// mostra solo il volume master, quindi per le app non avrebbe senso.
-    /// </summary>
     /// <summary>
     /// Popup nostro per le app (quello di Windows mostra solo il master).
     /// Se nessuna app dell'elenco sta usando l'audio, lo dice nel popup.
@@ -238,6 +238,10 @@ public sealed class Plugin(int port, string pluginUuid, string registerEvent)
         Osd.Show(Format.NormalizeProcess(result?.Name ?? apps[0]), result?.State, result?.ProcessId ?? 0);
     }
 
+    /// <summary>
+    /// Il master usa i tasti multimediali (che mostrano il popup di Windows) a meno
+    /// che il popup non sia disattivato nelle impostazioni.
+    /// </summary>
     private static bool UsesMediaKeys(Instance instance) =>
         instance.Action == MasterAction && Format.Popup(instance.Settings);
 
